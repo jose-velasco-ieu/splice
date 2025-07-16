@@ -110,7 +110,7 @@ template ValidatorLicense with
             dso
             validator = beneficiary
             round = openRound.round
-            weight
+            weight = Some weight
 
         return ValidatorLicense_RecordValidatorLivenessActivityResult with ..
 
@@ -210,12 +210,12 @@ template ValidatorLivenessActivityRecord with
     dso : Party
     validator : Party
     round : Round
-    weight : Int
+    weight : Optional Int
   where
     signatory dso
     observer validator
 
-    ensure weight >= 0 && weight <= 1
+    ensure optional True (\w -> w >= 0 && w <= 1) weight
 
     choice ValidatorLivenessActivityRecord_DsoExpire : ValidatorLivenessActivityRecord_DsoExpireResult
       with
