@@ -414,6 +414,7 @@ drawOnAllValidatorFaucets app = do
       -- submitMulti as the OpenMiningRound would be disclosed using explicit disclosure
       submitMulti [l.validator] [app.dso] $ exerciseCmd lcid ValidatorLicense_RecordValidatorLivenessActivity with
         openRoundCid = openRound._1
+        beneficiaries = None
 
 -- | Deposit all amulets together with new issuances into a single amulet.
 runAmuletDepositBots : AmuletApp -> Script ()

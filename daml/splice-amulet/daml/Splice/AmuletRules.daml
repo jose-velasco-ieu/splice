@@ -937,7 +937,7 @@ summarizeAndConsumeInputs csum dso sender inps = do
         totalValidatorRewardAmount = s.totalValidatorRewardAmount
         totalUnclaimedActivityRecordAmount = s.totalUnclaimedActivityRecordAmount
         totalValidatorFaucetAmount =
-          s.totalValidatorFaucetAmount + getIssuingMiningRoundIssuancePerValidatorFaucetCoupon miningRound
+          s.totalValidatorFaucetAmount + intToDecimal record.weight * getIssuingMiningRoundIssuancePerValidatorFaucetCoupon miningRound
         totalSvRewardAmount = s.totalSvRewardAmount
         totalHoldingFees = s.totalHoldingFees
         amountArchivedAsOfRoundZero = s.amountArchivedAsOfRoundZero

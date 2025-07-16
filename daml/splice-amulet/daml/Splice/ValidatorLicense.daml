@@ -7,6 +7,9 @@ import DA.Action (void)
 import DA.Text as Text
 import DA.Time
 import qualified DA.Foldable as Foldable
+import DA.Optional (fromOptional)
+
+import DA.List as List
 
 import Splice.Round
 import Splice.Types
@@ -24,7 +27,7 @@ data ValidatorLicense_ReceiveFaucetCouponResult = ValidatorLicense_ReceiveFaucet
 
 data ValidatorLicense_RecordValidatorLivenessActivityResult = ValidatorLicense_RecordValidatorLivenessActivityResult with
     licenseCid : ContractId ValidatorLicense
-    couponCid : ContractId ValidatorLivenessActivityRecord
+    couponCids : [ContractId ValidatorLivenessActivityRecord]
 
 data ValidatorLicense_WithdrawResult = ValidatorLicense_WithdrawResult
 
@@ -74,11 +77,18 @@ template ValidatorLicense with
     choice ValidatorLicense_RecordValidatorLivenessActivity : ValidatorLicense_RecordValidatorLivenessActivityResult
       with
         openRoundCid : ContractId OpenMiningRound
+        beneficiaries : Optional [(Party, Int)]
       controller validator
       do
         now <- getTime
         openRound <- fetchReferenceData (ForDso with dso) openRoundCid
         require "OpenRound is open" (openRound.opensAt <= now)
+
+        let beneficiaries' = fromOptional [(validator, 1)] beneficiaries
+        -- check weights and issue rewards
+        let totalBenficiaryWeight = sum $ map snd beneficiaries'
+        require "Total beneficiary weight matches 1" (totalBenficiaryWeight == 1)
+        require "At most one coupon per beneficiary" (List.unique $ map fst beneficiaries')
 
         newFaucetState <- case faucetState of
           None -> return $ Some FaucetState with
@@ -95,10 +105,12 @@ template ValidatorLicense with
 
         licenseCid <- create this with faucetState = newFaucetState; lastActiveAt = Some now
 
-        couponCid <- create ValidatorLivenessActivityRecord with
-          dso
-          validator
-          round = openRound.round
+        couponCids <- forA beneficiaries' $ \(beneficiary, weight) ->
+          create ValidatorLivenessActivityRecord with
+            dso
+            validator = beneficiary
+            round = openRound.round
+            weight
 
         return ValidatorLicense_RecordValidatorLivenessActivityResult with ..
 
@@ -198,9 +210,12 @@ template ValidatorLivenessActivityRecord with
     dso : Party
     validator : Party
     round : Round
+    weight : Int
   where
     signatory dso
     observer validator
+
+    ensure weight >= 0 && weight <= 1
 
     choice ValidatorLivenessActivityRecord_DsoExpire : ValidatorLivenessActivityRecord_DsoExpireResult
       with
