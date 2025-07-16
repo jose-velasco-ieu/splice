@@ -79,7 +79,7 @@ data SvRewardCoupon_ArchiveAsBeneficiaryResult = SvRewardCoupon_ArchiveAsBenefic
 
 data UnclaimedActivityRecord_ArchiveAsBeneficiaryResult = UnclaimedActivityRecord_ArchiveAsBeneficiaryResult
 
-data UnclaimedActivityRecord_DsoExpireResult = UnclaimedActivityRecord_DsoExpireResult with
+data UnclaimedActivityRecord_DsoExpireResult = UnclaimedActivityRecord_DsoExpireResult with 
   unclaimedRewardCid : ContractId UnclaimedReward
 
 -- | A amulet, which can be locked and whose amount expires over time.
@@ -390,29 +390,29 @@ template UnclaimedReward with
 
     signatory dso
 
--- | A record of activity that can be minted by the beneficiary.
--- Note that these do not come out of the per-round issuance but are instead created by burning
--- UnclaimedRewardCoupon as defined through a vote by the SVs. That's also why expiry is a separate
+-- | A record of activity that can be minted by the beneficiary. 
+-- Note that these do not come out of the per-round issuance but are instead created by burning 
+-- UnclaimedRewardCoupon as defined through a vote by the SVs. That's also why expiry is a separate 
 -- time-based expiry instead of being tied to a round like the other activity records.
 template UnclaimedActivityRecord
   with
     dso : Party
     beneficiary : Party -- ^ The owner of the `Amulet` to be minted.
     amount : Decimal -- ^ The amount of `Amulet` to be minted.
-    reason : Text -- ^ A reason to mint the `Amulet`.
-    expiresAt : Time -- ^ Selected timestamp defining the lifetime of the contract.
-  where
+    reason : Text -- ^ A reason to mint the `Amulet`. 
+    expiresAt : Time -- ^ Selected timestamp defining the lifetime of the contract. 
+  where 
     signatory dso
     observer beneficiary
     ensure amount > 0.0
 
     choice UnclaimedActivityRecord_DsoExpire : UnclaimedActivityRecord_DsoExpireResult
       controller dso
-      do
+      do 
         assertDeadlineExceeded "UnclaimedActivityRecord.expiresAt" expiresAt
         unclaimedRewardCid <- create UnclaimedReward with dso; amount
         pure UnclaimedActivityRecord_DsoExpireResult with unclaimedRewardCid
-
+  
 
 requireAmuletExpiredForAllOpenRounds : ContractId OpenMiningRound -> Amulet -> Update ()
 requireAmuletExpiredForAllOpenRounds roundCid amulet = do
