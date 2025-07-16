@@ -85,7 +85,7 @@ template ValidatorLicense with
         require "OpenRound is open" (openRound.opensAt <= now)
 
         let beneficiaries' = fromOptional [(validator, 1)] beneficiaries
-        -- check weights and issue rewards
+        -- check weights
         let totalBenficiaryWeight = sum $ map snd beneficiaries'
         require "Total beneficiary weight matches 1" (totalBenficiaryWeight == 1)
         require "At most one coupon per beneficiary" (List.unique $ map fst beneficiaries')
