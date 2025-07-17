@@ -29,6 +29,7 @@ import com.digitalasset.canton.tracing.TraceContext
 import io.opentelemetry.api.trace.Tracer
 import org.apache.pekko.stream.Materializer
 
+import java.util.Optional
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.OptionConverters.*
 import math.Ordering.Implicits.*
@@ -126,7 +127,8 @@ class ReceiveFaucetCouponTrigger(
           if (validatorLivenessActivityFeatureSupport.supported)
             license.exercise(
               _.exerciseValidatorLicense_RecordValidatorLivenessActivity(
-                unclaimedRound.contractId
+                unclaimedRound.contractId,
+                Optional.empty
               )
             )
           else
