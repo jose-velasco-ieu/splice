@@ -24,7 +24,8 @@ test_ValidatorFaucet = do
           map (._2) coupons === [ValidatorLivenessActivityRecord with
                 dso = app.dso
                 validator = aliceValidator.primaryParty
-                round]
+                round
+                weight = None]
 
     let checkActivityRecordsDoNotExist round = do
           [] <- queryFilter @ValidatorLivenessActivityRecord app.dso (\co -> co.round == round)
@@ -41,6 +42,7 @@ test_ValidatorFaucet = do
     now <- getTime
     result <- submitMulti [aliceValidator.primaryParty] [app.dso] $ exerciseCmd faucetCid ValidatorLicense_RecordValidatorLivenessActivity with
       openRoundCid = round0._1
+      beneficiaries = None
     let faucetCid = result.licenseCid
     Some faucet <- queryContractId @ValidatorLicense aliceValidator.primaryParty faucetCid
     faucet.lastActiveAt === Some now
@@ -49,10 +51,12 @@ test_ValidatorFaucet = do
     -- but not twice
     submitMultiMustFail [aliceValidator.primaryParty] [app.dso] $ exerciseCmd faucetCid ValidatorLicense_RecordValidatorLivenessActivity with
       openRoundCid = round0._1
+      beneficiaries = None
 
     -- round1 can be received
     result <- submitMulti [aliceValidator.primaryParty] [app.dso] $ exerciseCmd faucetCid ValidatorLicense_RecordValidatorLivenessActivity with
       openRoundCid = round1._1
+      beneficiaries = None
     let faucetCid = result.licenseCid
     checkActivityRecordsExist (round1._2.round)
 
@@ -87,6 +91,7 @@ test_ValidatorFaucet = do
     -- round3 can be received despite round 2 not yet being recieved, i.e., we can skip rounds
     result <- submitMulti [aliceValidator.primaryParty] [app.dso] $ exerciseCmd faucetCid ValidatorLicense_RecordValidatorLivenessActivity with
       openRoundCid = round3._1
+      beneficiaries = None
     let faucetCid = result.licenseCid
 
     checkActivityRecordsDoNotExist round2._2.round
@@ -100,5 +105,6 @@ test_ValidatorFaucet = do
     -- round2 can no longer be received
     submitMultiMustFail [alice.primaryParty] [app.dso] $ exerciseCmd faucetCid ValidatorLicense_RecordValidatorLivenessActivity with
       openRoundCid = round2._1
+      beneficiaries = None
 
     return ()

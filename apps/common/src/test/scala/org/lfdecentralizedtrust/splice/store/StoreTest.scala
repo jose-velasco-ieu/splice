@@ -407,6 +407,7 @@ abstract class StoreTest extends AsyncWordSpec with BaseTest {
         dsoParty.toProtoPrimitive,
         validator.toProtoPrimitive,
         new Round(round),
+        Optional.empty,
       ),
     )
   }

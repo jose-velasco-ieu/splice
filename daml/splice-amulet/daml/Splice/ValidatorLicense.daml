@@ -4,6 +4,7 @@
 module Splice.ValidatorLicense where
 
 import DA.Action (void)
+import DA.List as List (singleton, unique)
 import DA.Text as Text
 import DA.Time
 import qualified DA.Foldable as Foldable
@@ -24,7 +25,7 @@ data ValidatorLicense_ReceiveFaucetCouponResult = ValidatorLicense_ReceiveFaucet
 
 data ValidatorLicense_RecordValidatorLivenessActivityResult = ValidatorLicense_RecordValidatorLivenessActivityResult with
     licenseCid : ContractId ValidatorLicense
-    couponCid : ContractId ValidatorLivenessActivityRecord
+    couponCids : [ContractId ValidatorLivenessActivityRecord]
 
 data ValidatorLicense_WithdrawResult = ValidatorLicense_WithdrawResult
 
@@ -74,11 +75,30 @@ template ValidatorLicense with
     choice ValidatorLicense_RecordValidatorLivenessActivity : ValidatorLicense_RecordValidatorLivenessActivityResult
       with
         openRoundCid : ContractId OpenMiningRound
+        beneficiaries : Optional [(Party, Int)]
       controller validator
       do
         now <- getTime
         openRound <- fetchReferenceData (ForDso with dso) openRoundCid
         require "OpenRound is open" (openRound.opensAt <= now)
+
+        couponCids <- case beneficiaries of
+          None -> do
+            List.singleton <$> create ValidatorLivenessActivityRecord with
+              dso
+              validator
+              round = openRound.round
+              weight = None
+          Some beneficiaries' -> do
+            let totalBenficiaryWeight = sum $ map snd beneficiaries'
+            require "Total beneficiary weight matches 1" (totalBenficiaryWeight == 1)
+            require "At most one coupon per beneficiary" (List.unique $ map fst beneficiaries')
+            forA beneficiaries' $ \(beneficiary, weight) ->
+              create ValidatorLivenessActivityRecord with
+                dso
+                validator = beneficiary
+                round = openRound.round
+                weight = Some weight
 
         newFaucetState <- case faucetState of
           None -> return $ Some FaucetState with
@@ -94,11 +114,6 @@ template ValidatorLicense with
               numCouponsMissed = state.numCouponsMissed + (openRound.round.number - state.lastReceivedFor.number - 1)
 
         licenseCid <- create this with faucetState = newFaucetState; lastActiveAt = Some now
-
-        couponCid <- create ValidatorLivenessActivityRecord with
-          dso
-          validator
-          round = openRound.round
 
         return ValidatorLicense_RecordValidatorLivenessActivityResult with ..
 
@@ -198,9 +213,12 @@ template ValidatorLivenessActivityRecord with
     dso : Party
     validator : Party
     round : Round
+    weight : Optional Int
   where
     signatory dso
     observer validator
+
+    ensure optional True (\w -> w >= 0 && w <= 1) weight
 
     choice ValidatorLivenessActivityRecord_DsoExpire : ValidatorLivenessActivityRecord_DsoExpireResult
       with
